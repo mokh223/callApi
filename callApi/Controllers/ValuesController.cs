@@ -3,10 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using callApi.Request;
+using callApi.Helpers;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using Newtonsoft;
 
 namespace callApi.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/[controller]/[action]")]
     [ApiController]
     public class ValuesController : ControllerBase
     {
@@ -17,29 +22,41 @@ namespace callApi.Controllers
             return new string[] { "value1", "value2" };
         }
 
-        // GET api/values/5
-        [HttpGet("{id}")]
-        public ActionResult<string> Get(int id)
+        // GET api/values
+        [HttpGet]
+        public async Task<ActionResult<string>> postNoBearerAsync(string email, string password,string baseUrl, string action)
         {
-            return "value";
+            var request = new LoginRequest
+            {
+                email = email,
+                password = password
+            };
+
+            var callApi = new CallApi(baseUrl);
+            var client = callApi.getClient();
+            HttpResponseMessage response = await client.PostAsJsonAsync(action, request);
+            if (response.IsSuccessStatusCode)
+                return Ok(await response.Content.ReadAsAsync<string>());
+            else
+                return NotFound();
         }
 
-        // POST api/values
-        [HttpPost]
-        public void Post([FromBody] string value)
+        // GET api/values
+        [HttpGet]
+        public async Task<ActionResult<string>> getUseBearerAsync(string token, string baseUrl, string action)
         {
+            var callApi = new CallApi(baseUrl);
+            var client = callApi.getClient();
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            HttpResponseMessage response = await client.GetAsync(action);
+            if (response.IsSuccessStatusCode)
+            {
+                return Ok(await response.Content.ReadAsStringAsync());
+
+            }
+            else
+                return NotFound();
         }
 
-        // PUT api/values/5
-        [HttpPut("{id}")]
-        public void Put(int id, [FromBody] string value)
-        {
-        }
-
-        // DELETE api/values/5
-        [HttpDelete("{id}")]
-        public void Delete(int id)
-        {
-        }
     }
 }
